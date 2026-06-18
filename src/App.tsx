@@ -5,7 +5,9 @@ import Toolbar from "./Components/Toolbar/Toolbar";
 function App() {
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(4);
-  const [tool, setTool] = useState<"pencil" | "eraser">("pencil");
+  const [tool, setTool] = useState<"pencil" | "eraser" | "rectangle" | "fill">(
+    "pencil",
+  );
 
   return (
     <main className="flex flex-col items-center gap-4 p-6">

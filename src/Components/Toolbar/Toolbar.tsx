@@ -5,9 +5,9 @@ type ToolbarProps = {
   brushSize: number;
   setBrushSize: React.Dispatch<React.SetStateAction<number>>;
 
-  tool: "pencil" | "eraser";
+  tool: "pencil" | "eraser" | "rectangle" | "fill";
   setTool: React.Dispatch<
-    React.SetStateAction<"pencil" | "eraser">
+    React.SetStateAction<"pencil" | "eraser" | "rectangle" | "fill">
   >;
 };
 
@@ -20,45 +20,69 @@ export default function Toolbar({
   setTool,
 }: ToolbarProps) {
   return (
-    <section className="flex flex-col gap-2 items-center">
-      <div className="flex items-center justify-center gap-4 rounded-lg border p-4">
-        <label className="text-xl font-semibold">Color:</label>
-
+    <div className="flex flex-col gap-4 p-4 border rounded-lg w-fit">
+      {/* COLORS */}
+      <div className="flex items-center gap-2">
+        <span>Color:</span>
         <input
           className="size-8"
           type="color"
           value={color}
-          onChange={(event) => setColor(event.target.value)}
+          onChange={(e) => setColor(e.target.value)}
         />
       </div>
-      <div className="flex items-center gap-2">
-        <label>Size:</label>
 
+      {/* SIZE */}
+      <div className="flex items-center gap-2">
+        <span>Size:</span>
         <input
           type="range"
           min={1}
           max={50}
           value={brushSize}
-          onChange={(event) => setBrushSize(Number(event.target.value))}
+          onChange={(e) => setBrushSize(Number(e.target.value))}
         />
-
         <span>{brushSize}px</span>
       </div>
-      <div className="flex gap-2">
+
+      {/* TOOLS */}
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setTool("pencil")}
-          className="rounded border px-4 py-2 hover:scale-105 hover:cursor-pointer duration-300"
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "pencil" ? "bg-black text-white" : ""
+          }`}
         >
           Pencil
         </button>
 
         <button
           onClick={() => setTool("eraser")}
-          className="rounded border px-4 py-2 hover:scale-105 hover:cursor-pointer duration-300"
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "eraser" ? "bg-black text-white" : ""
+          }`}
         >
           Eraser
         </button>
+
+        <button
+          onClick={() => setTool("rectangle")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "rectangle" ? "bg-black text-white" : ""
+          }`}
+        >
+          Rectangle
+        </button>
+
+        <button
+          onClick={() => setTool("fill")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "fill" ? "bg-black text-white" : ""
+          }`}
+        >
+          Fill
+        </button>
       </div>
-    </section>
+    </div>
   );
 }
