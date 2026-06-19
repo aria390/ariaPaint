@@ -12,10 +12,18 @@ type ToolbarProps = {
     | "fill"
     | "circle"
     | "arrow"
+    | "select"
     | "text";
   setTool: React.Dispatch<
     React.SetStateAction<
-      "pencil" | "eraser" | "rectangle" | "fill" | "circle" | "arrow" | "text"
+      | "pencil"
+      | "eraser"
+      | "rectangle"
+      | "fill"
+      | "circle"
+      | "arrow"
+      | "text"
+      | "select"
     >
   >;
 
@@ -41,25 +49,34 @@ export default function Toolbar({
   return (
     <div className="flex flex-col gap-4 p-4 border rounded-lg w-fit">
       {/* COLORS */}
-      <div className="flex items-center gap-2">
-        <span>Color:</span>
-        <input
-          className="size-8"
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <span>Background:</span>
+      <section className="flex justify-between relative">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <span>Color:</span>
+            <input
+              className="size-8"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Background:</span>
 
-        <input
-          type="color"
-          value={backgroundColor}
-          onChange={(e) => setBackgroundColor(e.target.value)}
-          className="size-8"
+            <input
+              type="color"
+              value={backgroundColor}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+              className="size-8"
+            />
+          </div>
+        </div>
+        <img
+          className="size-30 absolute left-118 -top-4"
+          src="/AriaPaint.jpg"
+          alt=""
         />
-      </div>
+      </section>
 
       {/* SIZE */}
       <div className="flex items-center gap-2">
@@ -150,6 +167,14 @@ export default function Toolbar({
           }`}
         >
           Text
+        </button>
+        <button
+          onClick={() => setTool("select")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "select" ? "bg-black text-white" : ""
+          }`}
+        >
+          Select
         </button>
       </div>
     </div>

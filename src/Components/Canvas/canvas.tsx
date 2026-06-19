@@ -10,6 +10,7 @@ type CanvasProps = {
     | "fill"
     | "circle"
     | "arrow"
+    | "select"
     | "text";
   backgroundColor: string;
   fontSize: number;
@@ -91,6 +92,38 @@ export default function canvas({
 
   // ✅ SINGLE SOURCE OF TRUTH
   const [shapes, setShapes] = useState<Shape[]>([]);
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const isDragging = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const getShapeAtPoint = (x: number, y: number): number => {
+    for (let i = shapes.length - 1; i >= 0; i--) {
+      const s = shapes[i];
+
+      if (s.type === "rect") {
+        if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) {
+          return i;
+        }
+      }
+
+      if (s.type === "circle") {
+        const cx = s.x + s.rX / 2;
+        const cy = s.y + s.rY / 2;
+
+        const rx = Math.abs(s.rX) / 2;
+        const ry = Math.abs(s.rY) / 2;
+
+        const normalized =
+          Math.pow(x - cx, 2) / Math.pow(rx, 2) +
+          Math.pow(y - cy, 2) / Math.pow(ry, 2);
+
+        if (normalized <= 1) return i;
+      }
+    }
+
+    return -1;
+  };
 
   const historyRef = useRef<Shape[][]>([]);
   const redoRef = useRef<Shape[][]>([]);
@@ -238,6 +271,19 @@ export default function canvas({
   };
 
   // ======================
+  // Dounload IMG
+  // ======================
+  const downloadImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const link = document.createElement("a");
+    link.download = "drawing.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  // ======================
   // KEYBOARD (THIS WAS MISSING)
   // ======================
   useEffect(() => {
@@ -346,6 +392,68 @@ export default function canvas({
       isDrawing.current = false;
       return;
     }
+    if (tool === "select") {
+      const index = getShapeAtPoint(x, y);
+
+      if (index !== -1) {
+        setSelectedIndex(index);
+        isDragging.current = true;
+
+        const shape = shapes[index];
+
+        if (shape.type === "rect") {
+          if (isDragging.current && selectedIndex !== null) {
+            const x = e.nativeEvent.offsetX;
+            const y = e.nativeEvent.offsetY;
+
+            const updated = [...shapes];
+            const shape = updated[selectedIndex];
+
+            if (shape.type === "rect") {
+              shape.x = x - dragOffset.current.x;
+              shape.y = y - dragOffset.current.y;
+            }
+
+            if (shape.type === "circle") {
+              shape.x = x - dragOffset.current.x;
+              shape.y = y - dragOffset.current.y;
+            }
+
+            if (shape.type === "arrow") {
+              const dx = x - dragOffset.current.x;
+              const dy = y - dragOffset.current.y;
+
+              const offsetX = dx - shape.x1;
+              const offsetY = dy - shape.y1;
+
+              shape.x1 += offsetX;
+              shape.y1 += offsetY;
+              shape.x2 += offsetX;
+              shape.y2 += offsetY;
+            }
+
+            if (shape.type === "text") {
+              shape.x = x - dragOffset.current.x;
+              shape.y = y - dragOffset.current.y;
+            }
+
+            setShapes(updated);
+            return;
+          }
+        }
+
+        if (shape.type === "circle") {
+          dragOffset.current = {
+            x: x - shape.x,
+            y: y - shape.y,
+          };
+        }
+      } else {
+        setSelectedIndex(null);
+      }
+
+      return;
+    }
 
     if (tool === "pencil" || tool === "eraser") {
       currentLine.current = {
@@ -369,6 +477,27 @@ export default function canvas({
 
     const start = startPos.current;
     if (!start) return;
+
+    if (isDragging.current && selectedIndex !== null) {
+      const x = e.nativeEvent.offsetX;
+      const y = e.nativeEvent.offsetY;
+
+      const updated = [...shapes];
+      const shape = updated[selectedIndex];
+
+      if (shape.type === "rect") {
+        shape.x = x - dragOffset.current.x;
+        shape.y = y - dragOffset.current.y;
+      }
+
+      if (shape.type === "circle") {
+        shape.x = x - dragOffset.current.x;
+        shape.y = y - dragOffset.current.y;
+      }
+
+      setShapes(updated);
+      return;
+    }
 
     if (tool === "pencil" || tool === "eraser") {
       const line = currentLine.current;
@@ -453,6 +582,11 @@ export default function canvas({
     const y = e.nativeEvent.offsetY;
 
     const start = startPos.current;
+
+    if (tool === "select") {
+      isDragging.current = false;
+      return;
+    }
 
     if (tool === "pencil" || tool === "eraser") {
       if (currentLine.current) {
@@ -560,6 +694,12 @@ export default function canvas({
         onMouseUp={handleMouseUp}
         className="border border-gray-300"
       />
+      <button
+        onClick={downloadImage}
+        className="absolute cursor-pointer top-2 right-2 px-3 py-1 bg-black text-white rounded"
+      >
+        Download
+      </button>
     </div>
   );
 }
