@@ -5,10 +5,13 @@ type ToolbarProps = {
   brushSize: number;
   setBrushSize: React.Dispatch<React.SetStateAction<number>>;
 
-  tool: "pencil" | "eraser" | "rectangle" | "fill";
+  tool: "pencil" | "eraser" | "rectangle" | "fill" | "circle";
   setTool: React.Dispatch<
-    React.SetStateAction<"pencil" | "eraser" | "rectangle" | "fill">
+    React.SetStateAction<"pencil" | "eraser" | "rectangle" | "fill" | "circle">
   >;
+  backgroundColor: string;
+
+  setBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
 };
 
 export default function Toolbar({
@@ -18,6 +21,8 @@ export default function Toolbar({
   setBrushSize,
   tool,
   setTool,
+  backgroundColor,
+  setBackgroundColor,
 }: ToolbarProps) {
   return (
     <div className="flex flex-col gap-4 p-4 border rounded-lg w-fit">
@@ -29,6 +34,16 @@ export default function Toolbar({
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <span>Background:</span>
+
+        <input
+          type="color"
+          value={backgroundColor}
+          onChange={(e) => setBackgroundColor(e.target.value)}
+          className="size-8"
         />
       </div>
 
@@ -72,6 +87,15 @@ export default function Toolbar({
           }`}
         >
           Rectangle
+        </button>
+
+        <button
+          onClick={() => setTool("circle")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "circle" ? "bg-black text-white" : ""
+          }`}
+        >
+          Circle
         </button>
 
         <button

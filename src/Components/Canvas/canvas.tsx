@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 type CanvasProps = {
   color: string;
   brushSize: number;
-  tool: "pencil" | "eraser" | "rectangle" | "fill";
+  tool: "pencil" | "eraser" | "rectangle" | "fill" | "circle";
+  backgroundColor: string;
 };
 
 // ======================
@@ -26,11 +27,29 @@ type Line = {
   isEraser: boolean;
 };
 
-type Shape = Rect | Line;
+type Circle = {
+  type: "circle";
+  x: number;
+  y: number;
+  rX: number;
+  rY: number;
+  color: string;
+  fillColor?: string;
+  brushSize: number;
+};
 
-export default function canvas({ color, brushSize, tool }: CanvasProps) {
+type Shape = Rect | Line | Circle;
+
+export default function canvas({
+  color,
+  brushSize,
+  tool,
+  backgroundColor,
+}: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // ✅ SINGLE SOURCE OF TRUTH
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -64,9 +83,42 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
     const ctx = ctxRef.current;
     if (!canvas || !ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     list.forEach((s) => {
+      if (s.type === "circle") {
+        if (s.fillColor) {
+          ctx.fillStyle = s.fillColor;
+          ctx.beginPath();
+          ctx.ellipse(
+            s.x + s.rX / 2,
+            s.y + s.rY / 2,
+            Math.abs(s.rX) / 2,
+            Math.abs(s.rY) / 2,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = s.brushSize;
+
+        ctx.beginPath();
+        ctx.ellipse(
+          s.x + s.rX / 2,
+          s.y + s.rY / 2,
+          Math.abs(s.rX) / 2,
+          Math.abs(s.rY) / 2,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+      }
+
       if (s.type === "rect") {
         if (s.fillColor) {
           ctx.fillStyle = s.fillColor;
@@ -79,7 +131,7 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
       }
 
       if (s.type === "line") {
-        ctx.strokeStyle = s.isEraser ? "#fff" : s.color;
+        ctx.strokeStyle = s.isEraser ? backgroundColor : s.color;
         ctx.lineWidth = s.brushSize;
 
         ctx.beginPath();
@@ -96,13 +148,13 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
   // ======================
   useEffect(() => {
     draw(shapes);
-  }, [shapes]);
+  }, [shapes, backgroundColor]);
 
   // ======================
   // COMMIT
   // ======================
   const commit = (newShapes: Shape[]) => {
-    historyRef.current.push(shapes);
+    historyRef.current.push([...shapes]);
     redoRef.current = [];
 
     setShapes(newShapes);
@@ -115,7 +167,7 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
     const prev = historyRef.current.pop();
     if (!prev) return;
 
-    redoRef.current.push(shapes);
+    redoRef.current.push([...shapes]);
     setShapes(prev);
   };
 
@@ -126,7 +178,7 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
     const next = redoRef.current.pop();
     if (!next) return;
 
-    historyRef.current.push(shapes);
+    historyRef.current.push([...shapes]);
     setShapes(next);
   };
 
@@ -179,22 +231,54 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
     isDrawing.current = true;
     startPos.current = { x, y };
 
-    if (tool === "fill") {
-      const index = findRectAtPoint(x, y);
+    const findCircleAtPoint = (x: number, y: number) => {
+      for (let i = shapes.length - 1; i >= 0; i--) {
+        const s = shapes[i];
 
-      if (index !== -1) {
-        const updated = [...shapes];
+        if (s.type === "circle") {
+          const cx = s.x + s.rX / 2;
+          const cy = s.y + s.rY / 2;
 
-        const rect = updated[index];
+          const rx = Math.abs(s.rX) / 2;
+          const ry = Math.abs(s.rY) / 2;
 
-        if (rect.type === "rect") {
-          updated[index] = {
-            ...rect,
-            fillColor: color,
-          };
+          const normalized =
+            Math.pow(x - cx, 2) / Math.pow(rx, 2) +
+            Math.pow(y - cy, 2) / Math.pow(ry, 2);
 
-          commit(updated);
+          if (normalized <= 1) {
+            return i;
+          }
         }
+      }
+
+      return -1;
+    };
+
+    if (tool === "fill") {
+      const index = findCircleAtPoint(x, y);
+      const rectIndex = findRectAtPoint(x, y);
+
+      const updated = [...shapes];
+
+      if (index !== -1 && updated[index].type === "circle") {
+        updated[index] = {
+          ...updated[index],
+          fillColor: color,
+        };
+        commit(updated);
+        isDrawing.current = false;
+        return;
+      }
+
+      if (rectIndex !== -1 && updated[rectIndex].type === "rect") {
+        updated[rectIndex] = {
+          ...updated[rectIndex],
+          fillColor: color,
+        };
+        commit(updated);
+        isDrawing.current = false;
+        return;
       }
 
       isDrawing.current = false;
@@ -233,7 +317,7 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
       const ctx = ctxRef.current;
       if (!ctx) return;
 
-      ctx.strokeStyle = line.isEraser ? "#fff" : line.color;
+      ctx.strokeStyle = line.isEraser ? backgroundColor : line.color;
       ctx.lineWidth = line.brushSize;
 
       ctx.beginPath();
@@ -254,6 +338,29 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
       ctx.lineWidth = brushSize;
 
       ctx.strokeRect(start.x, start.y, x - start.x, y - start.y);
+    }
+    if (tool === "circle") {
+      draw(shapes);
+
+      const ctx = ctxRef.current;
+      if (!ctx) return;
+
+      const rX = x - start.x;
+      const rY = y - start.y;
+
+      ctx.beginPath();
+      ctx.ellipse(
+        start.x + rX / 2,
+        start.y + rY / 2,
+        Math.abs(rX) / 2,
+        Math.abs(rY) / 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize;
+      ctx.stroke();
     }
   };
 
@@ -293,6 +400,23 @@ export default function canvas({ color, brushSize, tool }: CanvasProps) {
     }
 
     startPos.current = null;
+
+    if (tool === "circle" && start) {
+      const rX = x - start.x;
+      const rY = y - start.y;
+
+      const circle: Circle = {
+        type: "circle",
+        x: start.x,
+        y: start.y,
+        rX,
+        rY,
+        color,
+        brushSize,
+      };
+
+      commit([...shapes, circle]);
+    }
   };
 
   return (
