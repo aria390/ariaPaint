@@ -3,8 +3,16 @@ import { useEffect, useRef, useState } from "react";
 type CanvasProps = {
   color: string;
   brushSize: number;
-  tool: "pencil" | "eraser" | "rectangle" | "fill" | "circle";
+  tool:
+    | "pencil"
+    | "eraser"
+    | "rectangle"
+    | "fill"
+    | "circle"
+    | "arrow"
+    | "text";
   backgroundColor: string;
+  fontSize: number;
 };
 
 // ======================
@@ -38,18 +46,48 @@ type Circle = {
   brushSize: number;
 };
 
-type Shape = Rect | Line | Circle;
+type Arrow = {
+  type: "arrow";
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  brushSize: number;
+};
+
+type TextShape = {
+  type: "text";
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  fontSize: number;
+};
+
+type Shape = Rect | Line | Circle | Arrow | TextShape;
 
 export default function canvas({
   color,
   brushSize,
   tool,
   backgroundColor,
+  fontSize,
 }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [textInput, setTextInput] = useState<{
+    x: number;
+    y: number;
+    value: string;
+    visible: boolean;
+  }>({
+    x: 0,
+    y: 0,
+    value: "",
+    visible: false,
+  });
 
   // ✅ SINGLE SOURCE OF TRUTH
   const [shapes, setShapes] = useState<Shape[]>([]);
@@ -87,6 +125,23 @@ export default function canvas({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     list.forEach((s) => {
+      if (s.type === "text") {
+        ctx.textBaseline = "top";
+        ctx.fillStyle = s.color;
+        ctx.font = `${s.fontSize}px sans-serif`;
+        ctx.fillText(s.text, s.x, s.y);
+      }
+
+      if (s.type === "arrow") {
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = s.brushSize;
+
+        ctx.beginPath();
+        ctx.moveTo(s.x1, s.y1);
+        ctx.lineTo(s.x2, s.y2);
+        ctx.stroke();
+      }
+
       if (s.type === "circle") {
         if (s.fillColor) {
           ctx.fillStyle = s.fillColor;
@@ -246,14 +301,21 @@ export default function canvas({
             Math.pow(x - cx, 2) / Math.pow(rx, 2) +
             Math.pow(y - cy, 2) / Math.pow(ry, 2);
 
-          if (normalized <= 1) {
-            return i;
-          }
+          if (normalized <= 1) return i;
         }
       }
-
       return -1;
     };
+
+    if (tool === "text") {
+      setTextInput({
+        x,
+        y,
+        value: "",
+        visible: true,
+      });
+      return;
+    }
 
     if (tool === "fill") {
       const index = findCircleAtPoint(x, y);
@@ -362,6 +424,21 @@ export default function canvas({
       ctx.lineWidth = brushSize;
       ctx.stroke();
     }
+
+    if (tool === "arrow") {
+      draw(shapes);
+
+      const ctx = ctxRef.current;
+      if (!ctx || !start) return;
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize;
+
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
   };
 
   // ======================
@@ -417,17 +494,72 @@ export default function canvas({
 
       commit([...shapes, circle]);
     }
+
+    if (tool === "arrow" && start) {
+      const arrow: Arrow = {
+        type: "arrow",
+        x1: start.x,
+        y1: start.y,
+        x2: x,
+        y2: y,
+        color,
+        brushSize,
+      };
+
+      commit([...shapes, arrow]);
+    }
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={1400}
-      height={600}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      className="border border-gray-300"
-    />
+    <div className="relative">
+      {textInput.visible && (
+        <input
+          className="absolute border border-solid border-black bg-white"
+          autoFocus
+          value={textInput.value}
+          onChange={(e) =>
+            setTextInput((prev) => ({
+              ...prev,
+              value: e.target.value,
+            }))
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const newText: TextShape = {
+                type: "text",
+                x: textInput.x,
+                y: textInput.y,
+                text: textInput.value,
+                color,
+                fontSize,
+              };
+
+              setShapes((prev) => [...prev, newText]);
+
+              setTextInput({
+                x: 0,
+                y: 0,
+                value: "",
+                visible: false,
+              });
+            }
+          }}
+          style={{
+            left: textInput.x,
+            top: textInput.y,
+            fontSize: fontSize,
+          }}
+        />
+      )}
+      <canvas
+        ref={canvasRef}
+        width={1400}
+        height={600}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        className="border border-gray-300"
+      />
+    </div>
   );
 }

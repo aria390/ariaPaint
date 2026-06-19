@@ -6,9 +6,10 @@ function App() {
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(4);
   const [tool, setTool] = useState<
-    "pencil" | "eraser" | "rectangle" | "fill" | "circle"
+    "pencil" | "eraser" | "rectangle" | "fill" | "circle" | "arrow" | "text"
   >("pencil");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [fontSize, setFontSize] = useState(16);
 
   return (
     <main className="flex flex-col items-center gap-4 p-6">
@@ -21,6 +22,8 @@ function App() {
         setTool={setTool}
         backgroundColor={backgroundColor}
         setBackgroundColor={setBackgroundColor}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
       />
 
       <Canvas
@@ -28,6 +31,7 @@ function App() {
         brushSize={brushSize}
         tool={tool}
         backgroundColor={backgroundColor}
+        fontSize={fontSize}
       />
     </main>
   );

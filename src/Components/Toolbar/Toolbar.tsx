@@ -5,13 +5,25 @@ type ToolbarProps = {
   brushSize: number;
   setBrushSize: React.Dispatch<React.SetStateAction<number>>;
 
-  tool: "pencil" | "eraser" | "rectangle" | "fill" | "circle";
+  tool:
+    | "pencil"
+    | "eraser"
+    | "rectangle"
+    | "fill"
+    | "circle"
+    | "arrow"
+    | "text";
   setTool: React.Dispatch<
-    React.SetStateAction<"pencil" | "eraser" | "rectangle" | "fill" | "circle">
+    React.SetStateAction<
+      "pencil" | "eraser" | "rectangle" | "fill" | "circle" | "arrow" | "text"
+    >
   >;
-  backgroundColor: string;
 
+  backgroundColor: string;
   setBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
+
+  fontSize: number;
+  setFontSize: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export default function Toolbar({
@@ -23,6 +35,8 @@ export default function Toolbar({
   setTool,
   backgroundColor,
   setBackgroundColor,
+  fontSize,
+  setFontSize,
 }: ToolbarProps) {
   return (
     <div className="flex flex-col gap-4 p-4 border rounded-lg w-fit">
@@ -58,6 +72,20 @@ export default function Toolbar({
           onChange={(e) => setBrushSize(Number(e.target.value))}
         />
         <span>{brushSize}px</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span>Text Size:</span>
+
+        <input
+          type="range"
+          min={10}
+          max={80}
+          value={fontSize}
+          onChange={(e) => setFontSize(Number(e.target.value))}
+        />
+
+        <span>{fontSize}px</span>
       </div>
 
       {/* TOOLS */}
@@ -99,12 +127,29 @@ export default function Toolbar({
         </button>
 
         <button
+          onClick={() => setTool("arrow")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "arrow" ? "bg-black text-white" : ""
+          }`}
+        >
+          Arrow
+        </button>
+
+        <button
           onClick={() => setTool("fill")}
           className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
             tool === "fill" ? "bg-black text-white" : ""
           }`}
         >
           Fill
+        </button>
+        <button
+          onClick={() => setTool("text")}
+          className={`px-3 py-1 border rounded hover:scale-105 duration-300 ${
+            tool === "text" ? "bg-black text-white" : ""
+          }`}
+        >
+          Text
         </button>
       </div>
     </div>
