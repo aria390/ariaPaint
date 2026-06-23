@@ -26,7 +26,6 @@ const TOOLS: { id: ToolType; label: string }[] = [
   { id: "arrow", label: "Arrow" },
   { id: "fill", label: "Fill" },
   { id: "text", label: "Text" },
-  { id: "select", label: "Select" },
 ];
 
 export default function Toolbar({
@@ -158,7 +157,7 @@ export default function Toolbar({
 
       {(tool === "pencil" || tool === "eraser") && (
         <p className="text-xs text-gray-400">
-          Tip: click any shape with Rectangle, Circle, Arrow, or Select to move it.
+          Tip: click any shape to select and move it. Double-click a text shape to edit it.
         </p>
       )}
     </div>
