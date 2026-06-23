@@ -1,0 +1,69 @@
+I want you to significantly improve this Paint application with the following features and UX enhancements. Please implement them cleanly and professionally, following modern UI/UX best practices.
+
+### 1. Draggable Text and Arrows
+
+* Make **Text** and **Arrow** objects selectable and draggable, just like **Rectangle** and **Circle** currently are.
+* They should behave consistently with all other drawable objects.
+
+### 2. Better Selection System
+
+* Replace the current selection workflow.
+* Users should **not** have to manually switch to a dedicated **Select** tool.
+* Instead, they should be able to simply click (or click and drag) any existing object to select and move it automatically, similar to the behavior of professional design tools such as Figma or Excalidraw.
+* Selection should feel intuitive and seamless.
+
+### 3. Resize Handles
+
+Add resizing support for all drawable objects:
+
+* Rectangle
+* Circle
+* Text
+* Arrow
+
+When an object is selected:
+
+* Display resize handles on its corners (or appropriate control points).
+* Users should be able to drag these handles to resize the object interactively.
+* Resizing should update in real time and feel smooth.
+* For arrows, resizing should adjust their start/end points naturally.
+
+### 4. Clear Canvas Button
+
+Add a **"Clear Canvas"** button that removes every object from the canvas after asking for user confirmation.
+
+### 5. Authentication System
+
+Create a fully functional authentication system that includes:
+
+* User registration (Sign Up)
+* User login (Sign In)
+* Secure authentication
+* Proper validation and error handling
+* Persistent user sessions
+
+### 6. Project Saving
+
+Allow authenticated users to:
+
+* Save multiple projects.
+* Automatically associate each project with the logged-in account.
+* Save the complete canvas state.
+
+### 7. Project Management
+
+Provide a project management interface where users can:
+
+* View all their saved projects.
+* Open any previously saved project.
+* Continue editing exactly where they left off.
+* Rename or delete projects if appropriate.
+
+### Additional Requirements
+
+* Keep the code clean, modular, and maintainable.
+* Follow modern React and TypeScript best practices.
+* Ensure the application remains responsive.
+* Preserve all existing functionality while adding these new features.
+* Make the interactions smooth and similar to professional drawing applications like Figma, Excalidraw, or tldraw.
+* Avoid introducing breaking changes or regressions.
