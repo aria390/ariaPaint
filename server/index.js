@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = path.join(__dirname, "ariapaint.db");
 const JWT_SECRET = process.env.JWT_SECRET || "ariapaint-secret-key-dev-only";
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const db = new Database(DB_PATH);
 

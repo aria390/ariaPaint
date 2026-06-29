@@ -5,7 +5,14 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Arrow, Circle, Line, Rect, Shape, TextShape } from "../../types/shapes";
+import type {
+  Arrow,
+  Circle,
+  Line,
+  Rect,
+  Shape,
+  TextShape,
+} from "../../types/shapes";
 
 export type ToolType =
   | "pencil"
@@ -34,11 +41,15 @@ export interface CanvasHandle {
 const HANDLE_R = 6;
 
 function distToSegment(
-  px: number, py: number,
-  x1: number, y1: number,
-  x2: number, y2: number
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
 ): number {
-  const dx = x2 - x1, dy = y2 - y1;
+  const dx = x2 - x1,
+    dy = y2 - y1;
   const lenSq = dx * dx + dy * dy;
   if (lenSq === 0) return Math.hypot(px - x1, py - y1);
   const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
@@ -47,43 +58,73 @@ function distToSegment(
 
 function getTextBounds(
   ctx: CanvasRenderingContext2D,
-  s: TextShape
+  s: TextShape,
 ): { x: number; y: number; w: number; h: number } {
   ctx.font = `${s.fontSize}px sans-serif`;
   const metrics = ctx.measureText(s.text || " ");
-  return { x: s.x, y: s.y, w: Math.max(metrics.width, 20), h: s.fontSize * 1.4 };
+  return {
+    x: s.x,
+    y: s.y,
+    w: Math.max(metrics.width, 20),
+    h: s.fontSize * 1.4,
+  };
 }
 
 type HandleName = "nw" | "ne" | "sw" | "se" | "start" | "end";
 type HandleMap = Partial<Record<HandleName, { x: number; y: number }>>;
 
-function getHandlePositions(ctx: CanvasRenderingContext2D | null, shape: Shape): HandleMap {
+function getHandlePositions(
+  ctx: CanvasRenderingContext2D | null,
+  shape: Shape,
+): HandleMap {
   if (shape.type === "rect") {
     const x = Math.min(shape.x, shape.x + shape.w);
     const y = Math.min(shape.y, shape.y + shape.h);
-    const w = Math.abs(shape.w), h = Math.abs(shape.h);
-    return { nw: { x, y }, ne: { x: x + w, y }, sw: { x, y: y + h }, se: { x: x + w, y: y + h } };
+    const w = Math.abs(shape.w),
+      h = Math.abs(shape.h);
+    return {
+      nw: { x, y },
+      ne: { x: x + w, y },
+      sw: { x, y: y + h },
+      se: { x: x + w, y: y + h },
+    };
   }
   if (shape.type === "circle") {
     const x = Math.min(shape.x, shape.x + shape.rX);
     const y = Math.min(shape.y, shape.y + shape.rY);
-    const w = Math.abs(shape.rX), h = Math.abs(shape.rY);
-    return { nw: { x, y }, ne: { x: x + w, y }, sw: { x, y: y + h }, se: { x: x + w, y: y + h } };
+    const w = Math.abs(shape.rX),
+      h = Math.abs(shape.rY);
+    return {
+      nw: { x, y },
+      ne: { x: x + w, y },
+      sw: { x, y: y + h },
+      se: { x: x + w, y: y + h },
+    };
   }
   if (shape.type === "text" && ctx) {
     const b = getTextBounds(ctx, shape);
     return {
-      nw: { x: b.x, y: b.y }, ne: { x: b.x + b.w, y: b.y },
-      sw: { x: b.x, y: b.y + b.h }, se: { x: b.x + b.w, y: b.y + b.h },
+      nw: { x: b.x, y: b.y },
+      ne: { x: b.x + b.w, y: b.y },
+      sw: { x: b.x, y: b.y + b.h },
+      se: { x: b.x + b.w, y: b.y + b.h },
     };
   }
   if (shape.type === "arrow") {
-    return { start: { x: shape.x1, y: shape.y1 }, end: { x: shape.x2, y: shape.y2 } };
+    return {
+      start: { x: shape.x1, y: shape.y1 },
+      end: { x: shape.x2, y: shape.y2 },
+    };
   }
   return {};
 }
 
-const oppositeHandle: Record<string, string> = { nw: "se", ne: "sw", sw: "ne", se: "nw" };
+const oppositeHandle: Record<string, string> = {
+  nw: "se",
+  ne: "sw",
+  sw: "ne",
+  se: "nw",
+};
 
 // ─── Text input state ────────────────────────────────────────────────────────
 type TextInputState = {
@@ -94,29 +135,39 @@ type TextInputState = {
   editingIndex: number | null; // null = new text, number = editing existing shape
 };
 
-const CLOSED_TEXT: TextInputState = { x: 0, y: 0, value: "", visible: false, editingIndex: null };
+const CLOSED_TEXT: TextInputState = {
+  x: 0,
+  y: 0,
+  value: "",
+  visible: false,
+  editingIndex: null,
+};
 
 const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   { color, brushSize, tool, backgroundColor, setBackgroundColor, fontSize },
-  ref
+  ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   const [shapes, setShapes] = useState<Shape[]>([]);
   const shapesRef = useRef<Shape[]>([]);
-  useEffect(() => { shapesRef.current = shapes; }, [shapes]);
+  useEffect(() => {
+    shapesRef.current = shapes;
+  }, [shapes]);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const selectedIndexRef = useRef<number | null>(null);
-  useEffect(() => { selectedIndexRef.current = selectedIndex; }, [selectedIndex]);
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
 
   const [textInput, setTextInput] = useState<TextInputState>(CLOSED_TEXT);
   const textInputRef = useRef<HTMLInputElement | null>(null);
 
   // Imperatively focus the text input whenever it becomes visible
   useEffect(() => {
-    if (textInput.visible) {
+    if (textInput) {
       requestAnimationFrame(() => textInputRef.current?.focus());
     }
   }, [textInput.visible, textInput.x, textInput.y]);
@@ -134,7 +185,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const historyRef = useRef<Shape[][]>([]);
   const redoRef = useRef<Shape[][]>([]);
   const backgroundColorRef = useRef(backgroundColor);
-  useEffect(() => { backgroundColorRef.current = backgroundColor; }, [backgroundColor]);
+  useEffect(() => {
+    backgroundColorRef.current = backgroundColor;
+  }, [backgroundColor]);
 
   useImperativeHandle(ref, () => ({
     getShapes: () => shapesRef.current,
@@ -162,8 +215,12 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   // ── Rendering helpers ────────────────────────────────────────────────────
   const drawArrow = (
     ctx: CanvasRenderingContext2D,
-    x1: number, y1: number, x2: number, y2: number,
-    clr: string, size: number
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    clr: string,
+    size: number,
   ) => {
     const angle = Math.atan2(y2 - y1, x2 - x1);
     const headLen = Math.max(14, size * 3);
@@ -178,8 +235,14 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - ha), y2 - headLen * Math.sin(angle - ha));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + ha), y2 - headLen * Math.sin(angle + ha));
+    ctx.lineTo(
+      x2 - headLen * Math.cos(angle - ha),
+      y2 - headLen * Math.sin(angle - ha),
+    );
+    ctx.lineTo(
+      x2 - headLen * Math.cos(angle + ha),
+      y2 - headLen * Math.sin(angle + ha),
+    );
     ctx.closePath();
     ctx.fill();
   };
@@ -188,7 +251,7 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     list: Shape[],
-    bgColor: string
+    bgColor: string,
   ) => {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -205,8 +268,10 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         drawArrow(ctx, s.x1, s.y1, s.x2, s.y2, s.color, s.brushSize);
       }
       if (s.type === "circle") {
-        const cx = s.x + s.rX / 2, cy = s.y + s.rY / 2;
-        const rx = Math.abs(s.rX) / 2, ry = Math.abs(s.rY) / 2;
+        const cx = s.x + s.rX / 2,
+          cy = s.y + s.rY / 2;
+        const rx = Math.abs(s.rX) / 2,
+          ry = Math.abs(s.rY) / 2;
         if (rx === 0 || ry === 0) return;
         if (s.fillColor) {
           ctx.beginPath();
@@ -233,15 +298,23 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         ctx.strokeStyle = s.isEraser ? bgColor : s.color;
         ctx.lineWidth = s.brushSize;
         ctx.beginPath();
-        s.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        s.points.forEach((p, i) =>
+          i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
+        );
         ctx.stroke();
       }
     });
   };
 
-  const drawSelectionOverlay = (ctx: CanvasRenderingContext2D, shape: Shape) => {
+  const drawSelectionOverlay = (
+    ctx: CanvasRenderingContext2D,
+    shape: Shape,
+  ) => {
     const handles = getHandlePositions(ctx, shape);
-    const positions = Object.values(handles).filter(Boolean) as { x: number; y: number }[];
+    const positions = Object.values(handles).filter(Boolean) as {
+      x: number;
+      y: number;
+    }[];
 
     ctx.save();
     ctx.setLineDash([5, 4]);
@@ -251,11 +324,21 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     if (shape.type === "rect") {
       const x = Math.min(shape.x, shape.x + shape.w);
       const y = Math.min(shape.y, shape.y + shape.h);
-      ctx.strokeRect(x - 4, y - 4, Math.abs(shape.w) + 8, Math.abs(shape.h) + 8);
+      ctx.strokeRect(
+        x - 4,
+        y - 4,
+        Math.abs(shape.w) + 8,
+        Math.abs(shape.h) + 8,
+      );
     } else if (shape.type === "circle") {
       const x = Math.min(shape.x, shape.x + shape.rX);
       const y = Math.min(shape.y, shape.y + shape.rY);
-      ctx.strokeRect(x - 4, y - 4, Math.abs(shape.rX) + 8, Math.abs(shape.rY) + 8);
+      ctx.strokeRect(
+        x - 4,
+        y - 4,
+        Math.abs(shape.rX) + 8,
+        Math.abs(shape.rY) + 8,
+      );
     } else if (shape.type === "text") {
       const b = getTextBounds(ctx, shape);
       ctx.strokeRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
@@ -319,9 +402,18 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
-      if (e.ctrlKey && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); }
-      if (e.key === "Escape") { setSelectedIndex(null); setClearConfirm(false); }
+      if (e.ctrlKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+      if (e.key === "Escape") {
+        setSelectedIndex(null);
+        setClearConfirm(false);
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && !textInput.visible) {
         const idx = selectedIndexRef.current;
         if (idx !== null) {
@@ -350,15 +442,23 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         if (x >= minX && x <= maxX && y >= minY && y <= maxY) return i;
       }
       if (shape.type === "circle") {
-        const cx = shape.x + shape.rX / 2, cy = shape.y + shape.rY / 2;
-        const rx = Math.abs(shape.rX) / 2, ry = Math.abs(shape.rY) / 2;
+        const cx = shape.x + shape.rX / 2,
+          cy = shape.y + shape.rY / 2;
+        const rx = Math.abs(shape.rX) / 2,
+          ry = Math.abs(shape.rY) / 2;
         if (rx > 0 && ry > 0) {
-          const n = Math.pow(x - cx, 2) / Math.pow(rx, 2) + Math.pow(y - cy, 2) / Math.pow(ry, 2);
+          const n =
+            Math.pow(x - cx, 2) / Math.pow(rx, 2) +
+            Math.pow(y - cy, 2) / Math.pow(ry, 2);
           if (n <= 1) return i;
         }
       }
       if (shape.type === "arrow") {
-        if (distToSegment(x, y, shape.x1, shape.y1, shape.x2, shape.y2) <= shape.brushSize + 8) return i;
+        if (
+          distToSegment(x, y, shape.x1, shape.y1, shape.x2, shape.y2) <=
+          shape.brushSize + 8
+        )
+          return i;
       }
       if (shape.type === "text" && ctx) {
         const b = getTextBounds(ctx, shape);
@@ -424,12 +524,15 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           isResizing.current = true;
           resizingHandle.current = handleName;
           if (shape.type === "arrow") {
-            resizeAnchor.current = handleName === "start"
-              ? { x: shape.x2, y: shape.y2 }
-              : { x: shape.x1, y: shape.y1 };
+            resizeAnchor.current =
+              handleName === "start"
+                ? { x: shape.x2, y: shape.y2 }
+                : { x: shape.x1, y: shape.y1 };
           } else {
             const opp = oppositeHandle[handleName];
-            const oppPos = (handles as Record<string, { x: number; y: number } | undefined>)[opp];
+            const oppPos = (
+              handles as Record<string, { x: number; y: number } | undefined>
+            )[opp];
             resizeAnchor.current = oppPos ?? pos;
           }
           isDragging.current = false;
@@ -444,8 +547,10 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       for (let i = updated.length - 1; i >= 0; i--) {
         const s = updated[i];
         if (s.type === "rect") {
-          const minX = Math.min(s.x, s.x + s.w), maxX = Math.max(s.x, s.x + s.w);
-          const minY = Math.min(s.y, s.y + s.h), maxY = Math.max(s.y, s.y + s.h);
+          const minX = Math.min(s.x, s.x + s.w),
+            maxX = Math.max(s.x, s.x + s.w);
+          const minY = Math.min(s.y, s.y + s.h),
+            maxY = Math.max(s.y, s.y + s.h);
           if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
             updated[i] = { ...s, fillColor: color };
             commit(updated);
@@ -453,10 +558,14 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           }
         }
         if (s.type === "circle") {
-          const cx = s.x + s.rX / 2, cy = s.y + s.rY / 2;
-          const rx = Math.abs(s.rX) / 2, ry = Math.abs(s.rY) / 2;
+          const cx = s.x + s.rX / 2,
+            cy = s.y + s.rY / 2;
+          const rx = Math.abs(s.rX) / 2,
+            ry = Math.abs(s.rY) / 2;
           if (rx > 0 && ry > 0) {
-            const n = Math.pow(x - cx, 2) / Math.pow(rx, 2) + Math.pow(y - cy, 2) / Math.pow(ry, 2);
+            const n =
+              Math.pow(x - cx, 2) / Math.pow(rx, 2) +
+              Math.pow(y - cy, 2) / Math.pow(ry, 2);
             if (n <= 1) {
               updated[i] = { ...s, fillColor: color };
               commit(updated);
@@ -477,9 +586,13 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         setSelectedIndex(hitIdx);
         const shape = shapesRef.current[hitIdx];
         isDragging.current = true;
-        dragOffset.current = shape.type === "arrow"
-          ? { x: x - shape.x1, y: y - shape.y1 }
-          : { x: x - (shape as { x: number }).x, y: y - (shape as { y: number }).y };
+        dragOffset.current =
+          shape.type === "arrow"
+            ? { x: x - shape.x1, y: y - shape.y1 }
+            : {
+                x: x - (shape as { x: number }).x,
+                y: y - (shape as { y: number }).y,
+              };
       } else {
         // Click on empty canvas: create new text
         setSelectedIndex(null);
@@ -497,9 +610,13 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         const shape = shapesRef.current[hitIdx];
         isDragging.current = true;
         isResizing.current = false;
-        dragOffset.current = shape.type === "arrow"
-          ? { x: x - shape.x1, y: y - shape.y1 }
-          : { x: x - (shape as { x: number }).x, y: y - (shape as { y: number }).y };
+        dragOffset.current =
+          shape.type === "arrow"
+            ? { x: x - shape.x1, y: y - shape.y1 }
+            : {
+                x: x - (shape as { x: number }).x,
+                y: y - (shape as { y: number }).y,
+              };
         return;
       } else {
         setSelectedIndex(null);
@@ -554,19 +671,29 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       if (selIdx !== null && shapesRef.current[selIdx]) {
         const handles = getHandlePositions(ctx, shapesRef.current[selIdx]);
         for (const [, pos] of Object.entries(handles)) {
-          if (pos && Math.hypot(x - pos.x, y - pos.y) <= HANDLE_R + 4) { onHandle = true; break; }
+          if (pos && Math.hypot(x - pos.x, y - pos.y) <= HANDLE_R + 4) {
+            onHandle = true;
+            break;
+          }
         }
       }
-      canvas.style.cursor = onHandle ? "crosshair"
-        : (tool === "pencil" || tool === "eraser" || tool === "fill") ? "crosshair"
-        : "default";
+      canvas.style.cursor = onHandle
+        ? "crosshair"
+        : tool === "pencil" || tool === "eraser" || tool === "fill"
+          ? "crosshair"
+          : "default";
     }
 
     if (!isDrawing.current) return;
     const start = startPos.current;
 
     // Resize
-    if (isResizing.current && selectedIndexRef.current !== null && resizingHandle.current && resizeAnchor.current) {
+    if (
+      isResizing.current &&
+      selectedIndexRef.current !== null &&
+      resizingHandle.current &&
+      resizeAnchor.current
+    ) {
       const idx = selectedIndexRef.current;
       const updated = [...shapesRef.current];
       const shape = { ...updated[idx] } as Shape;
@@ -588,8 +715,13 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         if (handle === "nw" || handle === "sw") shape.x = x;
         if (handle === "nw" || handle === "ne") shape.y = y;
       } else if (shape.type === "arrow") {
-        if (handle === "start") { shape.x1 = x; shape.y1 = y; }
-        else { shape.x2 = x; shape.y2 = y; }
+        if (handle === "start") {
+          shape.x1 = x;
+          shape.y1 = y;
+        } else {
+          shape.x2 = x;
+          shape.y2 = y;
+        }
       }
 
       updated[idx] = shape;
@@ -603,15 +735,22 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       const updated = [...shapesRef.current];
       const shape = { ...updated[idx] } as Shape;
 
-      if (shape.type === "rect" || shape.type === "circle" || shape.type === "text") {
+      if (
+        shape.type === "rect" ||
+        shape.type === "circle" ||
+        shape.type === "text"
+      ) {
         shape.x = x - dragOffset.current.x;
         shape.y = y - dragOffset.current.y;
       } else if (shape.type === "arrow") {
         const newX1 = x - dragOffset.current.x;
         const newY1 = y - dragOffset.current.y;
-        const dx = newX1 - shape.x1, dy = newY1 - shape.y1;
-        shape.x1 = newX1; shape.y1 = newY1;
-        shape.x2 += dx; shape.y2 += dy;
+        const dx = newX1 - shape.x1,
+          dy = newY1 - shape.y1;
+        shape.x1 = newX1;
+        shape.y1 = newY1;
+        shape.x2 += dx;
+        shape.y2 += dy;
       }
 
       updated[idx] = shape;
@@ -648,9 +787,18 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     }
     if (tool === "circle") {
       draw(shapesRef.current, selectedIndexRef.current);
-      const rX = x - start.x, rY = y - start.y;
+      const rX = x - start.x,
+        rY = y - start.y;
       ctx.beginPath();
-      ctx.ellipse(start.x + rX / 2, start.y + rY / 2, Math.abs(rX) / 2, Math.abs(rY) / 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        start.x + rX / 2,
+        start.y + rY / 2,
+        Math.abs(rX) / 2,
+        Math.abs(rY) / 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
       ctx.strokeStyle = color;
       ctx.lineWidth = brushSize;
       ctx.setLineDash([]);
@@ -687,7 +835,8 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     startPos.current = null;
 
     if (tool === "pencil" || tool === "eraser") {
-      if (currentLine.current) commit([...shapesRef.current, currentLine.current]);
+      if (currentLine.current)
+        commit([...shapesRef.current, currentLine.current]);
       currentLine.current = null;
       return;
     }
@@ -695,30 +844,63 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     if (!start) return;
 
     if (tool === "rectangle") {
-      commit([...shapesRef.current, {
-        type: "rect", x: start.x, y: start.y, w: x - start.x, h: y - start.y, color, brushSize,
-      } as Rect]);
+      commit([
+        ...shapesRef.current,
+        {
+          type: "rect",
+          x: start.x,
+          y: start.y,
+          w: x - start.x,
+          h: y - start.y,
+          color,
+          brushSize,
+        } as Rect,
+      ]);
     }
     if (tool === "circle") {
-      commit([...shapesRef.current, {
-        type: "circle", x: start.x, y: start.y, rX: x - start.x, rY: y - start.y, color, brushSize,
-      } as Circle]);
+      commit([
+        ...shapesRef.current,
+        {
+          type: "circle",
+          x: start.x,
+          y: start.y,
+          rX: x - start.x,
+          rY: y - start.y,
+          color,
+          brushSize,
+        } as Circle,
+      ]);
     }
     if (tool === "arrow") {
-      commit([...shapesRef.current, {
-        type: "arrow", x1: start.x, y1: start.y, x2: x, y2: y, color, brushSize,
-      } as Arrow]);
+      commit([
+        ...shapesRef.current,
+        {
+          type: "arrow",
+          x1: start.x,
+          y1: start.y,
+          x2: x,
+          y2: y,
+          color,
+          brushSize,
+        } as Arrow,
+      ]);
     }
   };
 
   const handleMouseLeave = () => {
-    if ((isDragging.current || isResizing.current) && !isDrawing.current === false) {
+    if (
+      (isDragging.current || isResizing.current) &&
+      !isDrawing.current === false
+    ) {
       isDragging.current = false;
       isResizing.current = false;
       commit([...shapesRef.current]);
     }
     if (isDrawing.current && (tool === "pencil" || tool === "eraser")) {
-      if (currentLine.current) { commit([...shapesRef.current, currentLine.current]); currentLine.current = null; }
+      if (currentLine.current) {
+        commit([...shapesRef.current, currentLine.current]);
+        currentLine.current = null;
+      }
     }
     isDrawing.current = false;
   };
@@ -745,7 +927,9 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           ref={textInputRef}
           className="absolute bg-transparent outline-none border border-dashed border-blue-500 px-0.5"
           value={textInput.value}
-          onChange={(e) => setTextInput((prev) => ({ ...prev, value: e.target.value }))}
+          onChange={(e) =>
+            setTextInput((prev) => ({ ...prev, value: e.target.value }))
+          }
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -787,26 +971,40 @@ const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       <div className="absolute top-2 right-2 flex gap-2">
         {clearConfirm ? (
           <div className="flex items-center gap-2 bg-white border border-red-300 rounded px-3 py-1 shadow-sm">
-            <span className="text-sm text-red-600 font-medium">Clear all shapes?</span>
+            <span className="text-sm text-red-600 font-medium">
+              Clear all shapes?
+            </span>
             <button
-              onClick={() => { commit([]); setSelectedIndex(null); setClearConfirm(false); }}
+              onClick={() => {
+                commit([]);
+                setSelectedIndex(null);
+                setClearConfirm(false);
+              }}
               className="px-2 py-0.5 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-            >Yes, clear</button>
+            >
+              Yes, clear
+            </button>
             <button
               onClick={() => setClearConfirm(false)}
               className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200"
-            >Cancel</button>
+            >
+              Cancel
+            </button>
           </div>
         ) : (
           <button
             onClick={() => setClearConfirm(true)}
             className="cursor-pointer px-3 py-1 bg-white border border-gray-300 text-gray-700 text-sm rounded hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors"
-          >Clear</button>
+          >
+            Clear
+          </button>
         )}
         <button
           onClick={downloadImage}
           className="cursor-pointer px-3 py-1 bg-black text-white text-sm rounded hover:bg-gray-800"
-        >Download</button>
+        >
+          Download
+        </button>
       </div>
     </div>
   );
